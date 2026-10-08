@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teachable Machine 姿勢控制 - 殭屍生存戰</title>
+    <title>Teachable Machine 姿勢控制 - 50x50 殭屍生存戰</title>
     
     <!-- TensorFlow.js & Teachable Machine Pose CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8.3/dist/teachablemachine-pose.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <style>
         :root {
@@ -37,109 +38,7 @@
             padding: 15px;
         }
 
-        h1 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: #38bdf8;
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-        }
-
-        .main-container {
-            display: flex;
-            gap: 20px;
-            max-width: 1300px;
-            width: 100%;
-            justify-content: center;
-            align-items: flex-start;
-            flex-wrap: wrap;
-        }
-
-        /* 左側：攝影機與控制面板 */
-        .control-panel {
-            background: var(--panel-bg);
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            width: 320px;
-        }
-
-        .webcam-container {
-            position: relative;
-            width: 280px;
-            height: 210px;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid #334155;
-        }
-
-        #webcam-canvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1); /* 鏡像顯示 */
-        }
-
-        .status-badge {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            background: rgba(0,0,0,0.7);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: #4ade80;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-        }
-
-        .btn:hover {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            background: #475569;
-            cursor: not-allowed;
-            transform: none;
-        }
-
         /* 類別信心度能量條 */
-        .prediction-list {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .pred-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            font-size: 0.85rem;
-        }
-
-        .pred-header {
-            display: flex;
-            justify-content: space-between;
-        }
-
         .bar-bg {
             height: 8px;
             background: #334155;
@@ -157,43 +56,6 @@
         .bar-fill.active {
             background: #38bdf8;
             box-shadow: 0 0 8px #38bdf8;
-        }
-
-        /* 右側：遊戲地圖區域 */
-        .game-panel {
-            background: var(--panel-bg);
-            border-radius: 12px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-            position: relative;
-        }
-
-        .hud {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: 8px 12px;
-            background: #0f172a;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        .hearts {
-            color: var(--accent-red);
-            letter-spacing: 2px;
-        }
-
-        .bomb-cd-container {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
         }
 
         .cd-bar-bg {
@@ -216,16 +78,17 @@
             border: 2px solid #334155;
             border-radius: 6px;
             image-rendering: pixelated;
+            max-width: 100%;
+            height: auto;
         }
 
-        /* 遊戲結束/勝利 彈窗覆蓋 */
         .overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.92);
             border-radius: 12px;
             display: flex;
             flex-direction: column;
@@ -234,71 +97,65 @@
             gap: 15px;
             z-index: 10;
         }
-
-        .overlay h2 {
-            font-size: 2.5rem;
-        }
-
-        .overlay h2.win { color: var(--accent-green); }
-        .overlay h2.lose { color: var(--accent-red); }
-
-        .hidden { display: none !important; }
-
-        .instructions {
-            font-size: 0.8rem;
-            color: #94a3b8;
-            margin-top: 5px;
-            text-align: center;
-            line-height: 1.4;
-        }
     </style>
 </head>
 <body>
 
-    <h1>姿勢控制 - 50x50 殭屍生存大逃殺</h1>
+    <h1 class="text-2xl md:text-3xl font-bold mb-4 text-sky-400 drop-shadow-md text-center">
+        姿勢控制 - 50x50 殭屍生存大逃殺
+    </h1>
 
-    <div class="main-container">
+    <div class="flex flex-wrap justify-center gap-5 w-full max-w-6xl items-start">
         <!-- 左側面板：AI鏡頭與控制項 -->
-        <div class="control-panel">
-            <div class="webcam-container">
-                <canvas id="webcam-canvas"></canvas>
-                <div id="statusBadge" class="status-badge">模型未載入</div>
+        <div class="bg-slate-800 rounded-xl p-4 flex flex-col items-center gap-3 shadow-xl w-full max-w-xs">
+            <div class="relative w-full h-52 bg-black rounded-lg overflow-hidden border-2 border-slate-700">
+                <canvas id="webcam-canvas" class="w-full h-full object-cover -scale-x-100"></canvas>
+                <div id="statusBadge" class="absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-xs font-bold text-emerald-400">
+                    模型未載入
+                </div>
             </div>
 
-            <button id="startBtn" class="btn" onclick="initModel()">啟動攝影機模型</button>
+            <button id="startBtn" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold py-2 px-4 rounded-md transition duration-200 shadow" onclick="initModel()">
+                啟動攝影機模型
+            </button>
+
+            <!-- 隱藏錯誤提示訊息盒 -->
+            <div id="errMsg" class="hidden text-xs text-red-400 bg-red-950/50 border border-red-800 p-2 rounded w-full text-center"></div>
 
             <!-- 分數機率條列表 -->
-            <div class="prediction-list" id="predictionList">
+            <div class="w-full flex flex-col gap-1.5 text-sm" id="predictionList">
                 <!-- JavaScript 動態建立 -->
             </div>
 
-            <div class="instructions">
+            <div class="text-xs text-slate-400 mt-1 text-left leading-relaxed w-full bg-slate-900/60 p-2.5 rounded border border-slate-700">
                 💡 <b>控制說明：</b><br>
-                1. 模型的姿勢判定信心度需 <b>&gt; 80%</b>。<br>
-                2. 每次觸發移動走 <b>2 格</b>。<br>
-                3. 放炸彈冷卻時間為 <b>6 秒</b>。<br>
-                4. 亦支援鍵盤操作（WASD / 箭頭移動，空白鍵放炸彈）。
+                1. 模型信心度需 <b>&gt; 80%</b> 觸發。<br>
+                2. 觸發一次移動走 <b>2 格</b>。<br>
+                3. 炸彈冷卻時間 <b>6 秒</b>（範圍 4x4）。<br>
+                4. 支援鍵盤 (WASD/箭頭，空白鍵放炸彈)。
             </div>
         </div>
 
         <!-- 右側面板：遊戲畫布與HUD -->
-        <div class="game-panel">
-            <div class="hud">
-                <div>生命：<span id="hearts" class="hearts">❤️❤️❤️❤️❤️</span></div>
-                <div class="bomb-cd-container">
+        <div class="bg-slate-800 rounded-xl p-4 flex flex-col items-center gap-3 shadow-xl relative w-full max-w-2xl">
+            <div class="flex justify-between items-center w-full px-3 py-2 bg-slate-900 rounded-lg text-base md:text-lg font-bold">
+                <div>生命：<span id="hearts" class="text-red-500 tracking-wider">❤️❤️❤️❤️❤️</span></div>
+                <div class="flex items-center gap-2 text-sm">
                     <span>炸彈 CD：</span>
                     <div class="cd-bar-bg"><div id="bombCdFill" class="cd-bar-fill"></div></div>
                 </div>
-                <div>剩餘殭屍：<span id="zombieCount" style="color: var(--accent-yellow);">5</span></div>
+                <div>剩餘殭屍：<span id="zombieCount" class="text-amber-400">5</span></div>
             </div>
 
             <canvas id="gameCanvas" width="600" height="600"></canvas>
 
             <!-- 結束/勝利蓋板 -->
             <div id="overlay" class="overlay hidden">
-                <h2 id="overlayTitle">GAME OVER</h2>
-                <p id="overlayDesc">你被殭屍吃掉了！</p>
-                <button class="btn" onclick="resetGame()" style="width: auto; padding: 10px 30px;">重新開始</button>
+                <h2 id="overlayTitle" class="text-4xl font-extrabold">GAME OVER</h2>
+                <p id="overlayDesc" class="text-slate-300">你被殭屍吃掉了！</p>
+                <button class="bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-6 rounded-md shadow-lg transition" onclick="resetGame()">
+                    重新開始
+                </button>
             </div>
         </div>
     </div>
@@ -307,7 +164,7 @@
         // --- 核心組態與變數 ---
         const MODEL_URL = "https://teachablemachine.withgoogle.com/models/kwuW3ErsG/";
         const MAP_SIZE = 50; // 50x50 地圖格子
-        const CELL_SIZE = 12; // 畫布繪製單格像素尺寸 (視圖區域 50x12 = 600px)
+        const CELL_SIZE = 12; // 畫布繪製單格像素尺寸 (50x12 = 600px)
         const CONFIDENCE_THRESHOLD = 0.80; // 觸發門檻 80%
         const PLAYER_MOVE_COOLDOWN = 220; // 玩家移動冷卻 ms
         const BOMB_COOLDOWN = 6000; // 炸彈冷卻 6 秒
@@ -317,10 +174,7 @@
         let gameCanvas, ctx;
         let isModelReady = false;
 
-        // 姿勢對應名稱表 (預設類別對應，實時比對)
         let classLabels = [];
-
-        // 控制冷卻計時器
         let lastMoveTime = 0;
         let lastBombTime = 0;
 
@@ -328,55 +182,520 @@
         let grid = []; // 0: 空地, 1: 障礙物
         let player = { x: 2, y: 2, size: 2, hp: 5, invulnerable: 0 }; // 2x2
         let zombies = []; // 5隻 3x3
-        let bombs = []; // 炸彈陣列 [{x, y, timer, animTimer}]
+        let bombs = []; // 炸彈陣列 [{x, y, timer}]
         let explosions = []; // 爆炸效果陣列 [{x, y, duration}]
         let isGameOver = false;
         let isGameWin = false;
 
-        // 初始化畫布與預設狀態
         window.onload = () => {
             webcamCanvas = document.getElementById('webcam-canvas');
             webcamCtx = webcamCanvas.getContext('2d');
             gameCanvas = document.getElementById('gameCanvas');
             ctx = gameCanvas.getContext('2d');
 
-            // 鍵盤監聽（備用操作）
             window.addEventListener('keydown', handleKeyDown);
 
             resetGame();
             requestAnimationFrame(gameLoop);
         };
 
-        // --- 1. Teachable Machine Pose 模型初始化 ---
         async function initModel() {
             const startBtn = document.getElementById('startBtn');
             const statusBadge = document.getElementById('statusBadge');
+            const errMsg = document.getElementById('errMsg');
+            
             startBtn.disabled = true;
             startBtn.innerText = "模型載入中...";
             statusBadge.innerText = "載入中...";
+            errMsg.classList.add('hidden');
 
             try {
                 const modelURL = MODEL_URL + "model.json";
                 const metadataURL = MODEL_URL + "metadata.json";
 
-                // 載入 Pose 模型與 Metadata
                 model = await tmPose.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
 
-                // 啟動 Webcam
                 const flip = true;
                 const webcam = new tmPose.Webcam(280, 210, flip);
                 await webcam.setup();
                 await webcam.play();
                 window.webcam = webcam;
 
-                // 構建 UI 分數條
                 classLabels = model.getClassLabels();
                 setupPredictionUI(classLabels);
 
                 statusBadge.innerText = "系統運行中";
-                statusBadge.style.color = "#4ade80";
+                statusBadge.className = "absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-xs font-bold text-emerald-400";
                 startBtn.innerText = "攝影機已連線";
 
                 isModelReady = true;
-                // 啟動攝影機預測迴圈
+                webcamLoop();
+
+            } catch (err) {
+                console.error("模型載入失敗:", err);
+                errMsg.innerText = "無法載入模型或存取攝影機！請檢查權限與連線。";
+                errMsg.classList.remove('hidden');
+                startBtn.disabled = false;
+                startBtn.innerText = "重新載入模型";
+                statusBadge.innerText = "載入失敗";
+                statusBadge.className = "absolute top-2 left-2 bg-black/70 px-2 py-1 rounded text-xs font-bold text-rose-500";
+            }
+        }
+
+        function setupPredictionUI(labels) {
+            const container = document.getElementById('predictionList');
+            container.innerHTML = '';
+            labels.forEach((label, idx) => {
+                const item = document.createElement('div');
+                item.className = 'flex flex-col gap-0.5';
+                item.innerHTML = `
+                    <div class="flex justify-between text-xs font-medium">
+                        <span>${label}</span>
+                        <span id="pred-val-${idx}">0%</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div id="pred-bar-${idx}" class="bar-fill"></div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function webcamLoop() {
+            if (isModelReady) {
+                window.webcam.update();
+                const { pose, posenetOutput } = await model.estimatePose(window.webcam.canvas);
+                const prediction = await model.predict(posenetOutput);
+
+                drawWebcamPose(pose);
+                processPredictions(prediction);
+
+                requestAnimationFrame(webcamLoop);
+            }
+        }
+
+        function drawWebcamPose(pose) {
+            webcamCtx.drawImage(window.webcam.canvas, 0, 0, webcamCanvas.width, webcamCanvas.height);
+            if (pose) {
+                const minPartConfidence = 0.5;
+                tmPose.drawKeypoints(pose.keypoints, minPartConfidence, webcamCtx);
+                tmPose.drawSkeleton(pose.keypoints, minPartConfidence, webcamCtx);
+            }
+        }
+
+        function processPredictions(predictions) {
+            let maxProb = 0;
+            let bestClass = "";
+
+            predictions.forEach((pred, idx) => {
+                const prob = pred.probability;
+                const bar = document.getElementById(`pred-bar-${idx}`);
+                const val = document.getElementById(`pred-val-${idx}`);
+
+                if (bar && val) {
+                    const percent = Math.round(prob * 100);
+                    bar.style.width = percent + "%";
+                    val.innerText = percent + "%";
+
+                    if (prob > CONFIDENCE_THRESHOLD) {
+                        bar.classList.add('active');
+                    } else {
+                        bar.classList.remove('active');
+                    }
+                }
+
+                if (prob > maxProb) {
+                    maxProb = prob;
+                    bestClass = pred.className;
+                }
+            });
+
+            if (maxProb >= CONFIDENCE_THRESHOLD && !isGameOver && !isGameWin) {
+                executePoseAction(bestClass);
+            }
+        }
+
+        function executePoseAction(className) {
+            const now = Date.now();
+            const name = className.toLowerCase();
+
+            if (now - lastMoveTime > PLAYER_MOVE_COOLDOWN) {
+                let dx = 0, dy = 0;
+                if (name.includes("上") || name.includes("up")) dy = -2;
+                else if (name.includes("下") || name.includes("down")) dy = 2;
+                else if (name.includes("左") || name.includes("left")) dx = -2;
+                else if (name.includes("右") || name.includes("right")) dx = 2;
+
+                if (dx !== 0 || dy !== 0) {
+                    movePlayer(dx, dy);
+                    lastMoveTime = now;
+                    return;
+                }
+            }
+
+            if ((name.includes("炸彈") || name.includes("bomb")) && (now - lastBombTime >= BOMB_COOLDOWN)) {
+                placeBomb();
+                lastBombTime = now;
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (isGameOver || isGameWin) return;
+            const now = Date.now();
+
+            if (now - lastMoveTime > PLAYER_MOVE_COOLDOWN) {
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { movePlayer(0, -2); lastMoveTime = now; }
+                else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { movePlayer(0, 2); lastMoveTime = now; }
+                else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { movePlayer(-2, 0); lastMoveTime = now; }
+                else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { movePlayer(2, 0); lastMoveTime = now; }
+            }
+
+            if (e.key === ' ' && (now - lastBombTime >= BOMB_COOLDOWN)) {
+                placeBomb();
+                lastBombTime = now;
+            }
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            isGameWin = false;
+            document.getElementById('overlay').classList.add('hidden');
+
+            // 1. 初始化 50x50 地圖與隨機障礙物
+            grid = Array.from({ length: MAP_SIZE }, () => Array(MAP_SIZE).fill(0));
+            for (let r = 0; r < MAP_SIZE; r++) {
+                for (let c = 0; c < MAP_SIZE; c++) {
+                    if (r === 0 || r === MAP_SIZE - 1 || c === 0 || c === MAP_SIZE - 1) {
+                        grid[r][c] = 1; // 外牆
+                    } else if (Math.random() < 0.18) {
+                        grid[r][c] = 1; // 隨機障礙物
+                    }
+                }
+            }
+
+            // 2. 清空玩家出生區域 5x5
+            player = { x: 2, y: 2, size: 2, hp: 5, invulnerable: 0 };
+            for (let r = 1; r <= 5; r++) {
+                for (let c = 1; c <= 5; c++) {
+                    grid[r][c] = 0;
+                }
+            }
+
+            // 3. 生成 5 隻 3x3 殭屍
+            zombies = [];
+            let spawned = 0;
+            while (spawned < 5) {
+                let rx = Math.floor(Math.random() * (MAP_SIZE - 6)) + 3;
+                let ry = Math.floor(Math.random() * (MAP_SIZE - 6)) + 3;
+
+                if (Math.abs(rx - player.x) > 10 || Math.abs(ry - player.y) > 10) {
+                    clearArea(rx, ry, 3, 3);
+                    zombies.push({
+                        x: rx,
+                        y: ry,
+                        size: 3,
+                        moveTimer: 0
+                    });
+                    spawned++;
+                }
+            }
+
+            bombs = [];
+            explosions = [];
+            lastBombTime = 0;
+            updateHUD();
+        }
+
+        function clearArea(x, y, w, h) {
+            for (let r = y; r < y + h; r++) {
+                for (let c = x; c < x + w; c++) {
+                    if (r > 0 && r < MAP_SIZE - 1 && c > 0 && c < MAP_SIZE - 1) {
+                        grid[r][c] = 0;
+                    }
+                }
+            }
+        }
+
+        function movePlayer(dx, dy) {
+            let targetX = player.x + dx;
+            let targetY = player.y + dy;
+
+            if (canEntityOccupy(targetX, targetY, player.size)) {
+                player.x = targetX;
+                player.y = targetY;
+            } else {
+                let stepX = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+                let stepY = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+                if (canEntityOccupy(player.x + stepX, player.y + stepY, player.size)) {
+                    player.x += stepX;
+                    player.y += stepY;
+                }
+            }
+        }
+
+        function placeBomb() {
+            let bombX = Math.floor(player.x + player.size / 2);
+            let bombY = Math.floor(player.y + player.size / 2);
+            bombs.push({
+                x: bombX,
+                y: bombY,
+                timer: 2.0
+            });
+        }
+
+        function canEntityOccupy(x, y, size) {
+            if (x < 0 || y < 0 || x + size > MAP_SIZE || y + size > MAP_SIZE) return false;
+            for (let r = y; r < y + size; r++) {
+                for (let c = x; c < x + size; c++) {
+                    if (grid[r][c] === 1) return false;
+                }
+            }
+            return true;
+        }
+
+        function checkAABB(x1, y1, w1, h1, x2, y2, w2, h2) {
+            return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+        }
+
+        function updateZombies(dt) {
+            zombies.forEach(zombie => {
+                zombie.moveTimer += dt;
+                // 每秒走 4 格 (0.25秒移動 1 格)
+                if (zombie.moveTimer >= 0.25) {
+                    zombie.moveTimer = 0;
+
+                    let nextStep = getBFSNextMove(zombie.x, zombie.y, zombie.size, player.x, player.y);
+                    if (nextStep) {
+                        zombie.x = nextStep.x;
+                        zombie.y = nextStep.y;
+                    }
+                }
+
+                if (checkAABB(player.x, player.y, player.size, player.size, zombie.x, zombie.y, zombie.size, zombie.size)) {
+                    damagePlayer();
+                }
+            });
+        }
+
+        function getBFSNextMove(zx, zy, zSize, px, py) {
+            const queue = [{ x: zx, y: zy, path: [] }];
+            const visited = new Set();
+            visited.add(`${zx},${zy}`);
+
+            const dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+
+            while (queue.length > 0) {
+                const curr = queue.shift();
+
+                if (checkAABB(curr.x, curr.y, zSize, zSize, px, py, player.size, player.size)) {
+                    return curr.path.length > 0 ? curr.path[0] : { x: zx, y: zy };
+                }
+
+                if (curr.path.length > 30) continue;
+
+                for (let d of dirs) {
+                    let nx = curr.x + d.x;
+                    let ny = curr.y + d.y;
+
+                    let key = `${nx},${ny}`;
+                    if (!visited.has(key) && canEntityOccupy(nx, ny, zSize)) {
+                        visited.add(key);
+                        queue.push({
+                            x: nx,
+                            y: ny,
+                            path: [...curr.path, { x: nx, y: ny }]
+                        });
+                    }
+                }
+            }
+
+            let dirX = px > zx ? 1 : (px < zx ? -1 : 0);
+            let dirY = py > zy ? 1 : (py < zy ? -1 : 0);
+            if (dirX !== 0 && canEntityOccupy(zx + dirX, zy, zSize)) return { x: zx + dirX, y: zy };
+            if (dirY !== 0 && canEntityOccupy(zx, zy + dirY, zSize)) return { x: zx, y: zy + dirY };
+
+            return null;
+        }
+
+        function updateBombs(dt) {
+            for (let i = bombs.length - 1; i >= 0; i--) {
+                let b = bombs[i];
+                b.timer -= dt;
+
+                if (b.timer <= 0) {
+                    let expX = Math.max(0, b.x - 1);
+                    let expY = Math.max(0, b.y - 1);
+                    let expW = 4;
+                    let expH = 4;
+
+                    for (let r = expY; r < expY + expH; r++) {
+                        for (let c = expX; c < expX + expW; c++) {
+                            if (r > 0 && r < MAP_SIZE - 1 && c > 0 && c < MAP_SIZE - 1) {
+                                grid[r][c] = 0;
+                            }
+                        }
+                    }
+
+                    zombies = zombies.filter(z => {
+                        return !checkAABB(z.x, z.y, z.size, z.size, expX, expY, expW, expH);
+                    });
+
+                    if (checkAABB(player.x, player.y, player.size, player.size, expX, expY, expW, expH)) {
+                        damagePlayer();
+                    }
+
+                    explosions.push({ x: expX, y: expY, w: expW, h: expH, duration: 0.4 });
+                    bombs.splice(i, 1);
+
+                    if (zombies.length === 0) {
+                        triggerWin();
+                    }
+                }
+            }
+
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                explosions[i].duration -= dt;
+                if (explosions[i].duration <= 0) {
+                    explosions.splice(i, 1);
+                }
+            }
+        }
+
+        function damagePlayer() {
+            if (player.invulnerable <= 0 && !isGameOver && !isGameWin) {
+                player.hp -= 1;
+                player.invulnerable = 1.5;
+                updateHUD();
+
+                if (player.hp <= 0) {
+                    triggerGameOver();
+                }
+            }
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            document.getElementById('overlayTitle').innerText = "GAME OVER";
+            document.getElementById('overlayTitle').className = "text-4xl font-extrabold text-red-500";
+            document.getElementById('overlayDesc').innerText = "你被殭屍或炸彈擊敗了！";
+            document.getElementById('overlay').classList.remove('hidden');
+        }
+
+        function triggerWin() {
+            isGameWin = true;
+            document.getElementById('overlayTitle').innerText = "VICTORY!";
+            document.getElementById('overlayTitle').className = "text-4xl font-extrabold text-emerald-400";
+            document.getElementById('overlayDesc').innerText = "太棒了！你成功消滅了所有 5 隻殭屍！";
+            document.getElementById('overlay').classList.remove('hidden');
+        }
+
+        function updateHUD() {
+            document.getElementById('hearts').innerText = "❤️".repeat(Math.max(0, player.hp));
+            document.getElementById('zombieCount').innerText = zombies.length;
+        }
+
+        let lastFrameTime = performance.now();
+
+        function gameLoop(now) {
+            const dt = (now - lastFrameTime) / 1000;
+            lastFrameTime = now;
+
+            if (!isGameOver && !isGameWin) {
+                if (player.invulnerable > 0) player.invulnerable -= dt;
+                updateZombies(dt);
+                updateBombs(dt);
+                updateBombCDBUI();
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateBombCDBUI() {
+            const now = Date.now();
+            const elapsed = now - lastBombTime;
+            const remainingRatio = Math.min(1, elapsed / BOMB_COOLDOWN);
+            document.getElementById('bombCdFill').style.width = (remainingRatio * 100) + "%";
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+            // 1. 繪製 50x50 地圖與障礙物
+            for (let r = 0; r < MAP_SIZE; r++) {
+                for (let c = 0; c < MAP_SIZE; c++) {
+                    if (grid[r][c] === 1) {
+                        ctx.fillStyle = "#475569";
+                        ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        ctx.strokeStyle = "#334155";
+                        ctx.strokeRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    } else {
+                        ctx.fillStyle = "#020617";
+                        ctx.fillRect(c * CELL_SIZE, r * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    }
+                }
+            }
+
+            // 網格線
+            ctx.strokeStyle = "rgba(255,255,255,0.03)";
+            for (let i = 0; i <= MAP_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, gameCanvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(gameCanvas.width, i * CELL_SIZE);
+                ctx.stroke();
+            }
+
+            // 2. 繪製炸彈
+            bombs.forEach(b => {
+                ctx.fillStyle = "#f59e0b";
+                ctx.beginPath();
+                ctx.arc((b.x + 0.5) * CELL_SIZE, (b.y + 0.5) * CELL_SIZE, CELL_SIZE * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 10px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(Math.ceil(b.timer), (b.x + 0.5) * CELL_SIZE, (b.y + 0.7) * CELL_SIZE);
+            });
+
+            // 3. 繪製爆炸範圍 (4x4)
+            explosions.forEach(exp => {
+                ctx.fillStyle = "rgba(239, 68, 68, 0.65)";
+                ctx.fillRect(exp.x * CELL_SIZE, exp.y * CELL_SIZE, exp.w * CELL_SIZE, exp.h * CELL_SIZE);
+                ctx.strokeStyle = "#fcd34d";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(exp.x * CELL_SIZE, exp.y * CELL_SIZE, exp.w * CELL_SIZE, exp.h * CELL_SIZE);
+                ctx.lineWidth = 1;
+            });
+
+            // 4. 繪製殭屍 (3x3 格)
+            zombies.forEach(z => {
+                ctx.fillStyle = "#22c55e";
+                ctx.fillRect(z.x * CELL_SIZE, z.y * CELL_SIZE, z.size * CELL_SIZE, z.size * CELL_SIZE);
+                ctx.strokeStyle = "#15803d";
+                ctx.strokeRect(z.x * CELL_SIZE, z.y * CELL_SIZE, z.size * CELL_SIZE, z.size * CELL_SIZE);
+
+                ctx.fillStyle = "#000";
+                ctx.fillRect((z.x + 0.5) * CELL_SIZE, (z.y + 0.8) * CELL_SIZE, 6, 6);
+                ctx.fillRect((z.x + 1.8) * CELL_SIZE, (z.y + 0.8) * CELL_SIZE, 6, 6);
+            });
+
+            // 5. 繪製玩家 (2x2 格, 受傷閃爍)
+            if (player.invulnerable <= 0 || Math.floor(Date.now() / 100) % 2 === 0) {
+                ctx.fillStyle = "#38bdf8";
+                ctx.fillRect(player.x * CELL_SIZE, player.y * CELL_SIZE, player.size * CELL_SIZE, player.size * CELL_SIZE);
+                ctx.strokeStyle = "#1d4ed8";
+                ctx.strokeRect(player.x * CELL_SIZE, player.y * CELL_SIZE, player.size * CELL_SIZE, player.size * CELL_SIZE);
+
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect((player.x + 0.3) * CELL_SIZE, (player.y + 0.4) * CELL_SIZE, CELL_SIZE * 1.4, 5);
+            }
+        }
+    </script>
+</body>
+</html>
