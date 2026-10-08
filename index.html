@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine 姿勢控制 - 殭屍生存戰</title>
+    
+    <!-- TensorFlow.js & Teachable Machine Pose CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8.3/dist/teachablemachine-pose.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: #1e293b;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --text-color: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #38bdf8;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1300px;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+
+        /* 左側：攝影機與控制面板 */
+        .control-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            width: 320px;
+        }
+
+        .webcam-container {
+            position: relative;
+            width: 280px;
+            height: 210px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #334155;
+        }
+
+        #webcam-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* 鏡像顯示 */
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 類別信心度能量條 */
+        .prediction-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .pred-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.85rem;
+        }
+
+        .pred-header {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bar-bg {
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-green);
+            transition: width 0.1s ease-out, background-color 0.2s;
+        }
+
+        .bar-fill.active {
+            background: #38bdf8;
+            box-shadow: 0 0 8px #38bdf8;
+        }
+
+        /* 右側：遊戲地圖區域 */
+        .game-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 8px 12px;
+            background: #0f172a;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .hearts {
+            color: var(--accent-red);
+            letter-spacing: 2px;
+        }
+
+        .bomb-cd-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .cd-bar-bg {
+            width: 100px;
+            height: 10px;
+            background: #334155;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .cd-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: var(--accent-yellow);
+            transition: width 0.1s linear;
+        }
+
+        canvas#gameCanvas {
+            background: #020617;
+            border: 2px solid #334155;
+            border-radius: 6px;
+            image-rendering: pixelated;
+        }
+
+        /* 遊戲結束/勝利 彈窗覆蓋 */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .overlay h2 {
+            font-size: 2.5rem;
+        }
+
+        .overlay h2.win { color: var(--accent-green); }
+        .overlay h2.lose { color: var(--accent-red); }
+
+        .hidden { display: none !important; }
+
+        .instructions {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 5px;
+            text-align: center;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>姿勢控制 - 50x50 殭屍生存大逃殺</h1>
+
+    <div class="main-container">
+        <!-- 左側面板：AI鏡頭與控制項 -->
+        <div class="control-panel">
+            <div class="webcam-container">
+                <canvas id="webcam-canvas"></canvas>
+                <div id="statusBadge" class="status-badge">模型未載入</div>
+            </div>
+
+            <button id="startBtn" class="btn" onclick="initModel()">啟動攝影機模型</button>
+
+            <!-- 分數機率條列表 -->
+            <div class="prediction-list" id="predictionList">
+                <!-- JavaScript 動態建立 -->
+            </div>
+
+            <div class="instructions">
+                💡 <b>控制說明：</b><br>
+                1. 模型的姿勢判定信心度需 <b>&gt; 80%</b>。<br>
+                2. 每次觸發移動走 <b>2 格</b>。<br>
+                3. 放炸彈冷卻時間為 <b>6 秒</b>。<br>
+                4. 亦支援鍵盤操作（WASD / 箭頭移動，空白鍵放炸彈）。
+            </div>
+        </div>
+
+        <!-- 右側面板：遊戲畫布與HUD -->
+        <div class="game-panel">
+            <div class="hud">
+                <div>生命：<span id="hearts" class="hearts">❤️❤️❤️❤️❤️</span></div>
+                <div class="bomb-cd-container">
+                    <span>炸彈 CD：</span>
+                    <div class="cd-bar-bg"><div id="bombCdFill" class="cd-bar-fill"></div></div>
+                </div>
+                <div>剩餘殭屍：<span id="zombieCount" style="color: var(--accent-yellow);">5</span></div>
+            </div>
+
+            <canvas id="gameCanvas" width="600" height="600"></canvas>
+
+            <!-- 結束/勝利蓋板 -->
+            <div id="overlay" class="overlay hidden">
+                <h2 id="overlayTitle">GAME OVER</h2>
+                <p id="overlayDesc">你被殭屍吃掉了！</p>
+                <button class="btn" onclick="resetGame()" style="width: auto; padding: 10px 30px;">重新開始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心組態與變數 ---
+        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/kwuW3ErsG/";
+        const MAP_SIZE = 50; // 50x50 地圖格子
+        const CELL_SIZE = 12; // 畫布繪製單格像素尺寸 (視圖區域 50x12 = 600px)
+        const CONFIDENCE_THRESHOLD = 0.80; // 觸發門檻 80%
+        const PLAYER_MOVE_COOLDOWN = 220; // 玩家移動冷卻 ms
+        const BOMB_COOLDOWN = 6000; // 炸彈冷卻 6 秒
+
+        let model, maxPredictions;
+        let webcamCanvas, webcamCtx;
+        let gameCanvas, ctx;
+        let isModelReady = false;
+
+        // 姿勢對應名稱表 (預設類別對應，實時比對)
+        let classLabels = [];
+
+        // 控制冷卻計時器
+        let lastMoveTime = 0;
+        let lastBombTime = 0;
+
+        // --- 遊戲狀態 ---
+        let grid = []; // 0: 空地, 1: 障礙物
+        let player = { x: 2, y: 2, size: 2, hp: 5, invulnerable: 0 }; // 2x2
+        let zombies = []; // 5隻 3x3
+        let bombs = []; // 炸彈陣列 [{x, y, timer, animTimer}]
+        let explosions = []; // 爆炸效果陣列 [{x, y, duration}]
+        let isGameOver = false;
+        let isGameWin = false;
+
+        // 初始化畫布與預設狀態
+        window.onload = () => {
+            webcamCanvas = document.getElementById('webcam-canvas');
+            webcamCtx = webcamCanvas.getContext('2d');
+            gameCanvas = document.getElementById('gameCanvas');
+            ctx = gameCanvas.getContext('2d');
+
+            // 鍵盤監聽（備用操作）
+            window.addEventListener('keydown', handleKeyDown);
+
+            resetGame();
+            requestAnimationFrame(gameLoop);
+        };
+
+        // --- 1. Teachable Machine Pose 模型初始化 ---
+        async function initModel() {
+            const startBtn = document.getElementById('startBtn');
+            const statusBadge = document.getElementById('statusBadge');
+            startBtn.disabled = true;
+            startBtn.innerText = "模型載入中...";
+            statusBadge.innerText = "載入中...";
+
+            try {
+                const modelURL = MODEL_URL + "model.json";
+                const metadataURL = MODEL_URL + "metadata.json";
+
+                // 載入 Pose 模型與 Metadata
+                model = await tmPose.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+
+                // 啟動 Webcam
+                const flip = true;
+                const webcam = new tmPose.Webcam(280, 210, flip);
+                await webcam.setup();
+                await webcam.play();
+                window.webcam = webcam;
+
+                // 構建 UI 分數條
+                classLabels = model.getClassLabels();
+                setupPredictionUI(classLabels);
+
+                statusBadge.innerText = "系統運行中";
+                statusBadge.style.color = "#4ade80";
+                startBtn.innerText = "攝影機已連線";
+
+                isModelReady = true;
+                // 啟動攝影機預測迴圈
